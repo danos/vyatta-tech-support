@@ -1,0 +1,33 @@
+#! /bin/bash
+#
+# Copyright (c) 2019, AT&T Intellectual Property. All rights reserved.
+# Copyright (c) 2014-2016 by Brocade Communications Systems, Inc.
+# All rights reserved.
+#
+# SPDX-License-Identifier: GPL-2.0-only
+
+source "$(cd "$(dirname "${0}")" && pwd -P)"/../tech-support.functions
+
+header CONFIGURATION
+
+header Vyatta Version and Package Changes
+do_cmd run show version all
+
+header Configuration Commands
+do_cmd run show configuration commands
+
+header Running configuration
+do_cmd run show configuration
+
+if [ -s /etc/apt/sources.list ]; then
+    header Package Repository Configuration File
+    do_cmd cat /etc/apt/sources.list
+fi
+
+if [ -s /etc/rc.local ]; then
+    header User Startup Scripts
+    do_cmd cat /etc/rc.local
+fi
+
+header NTP
+do_cmd run show ntp

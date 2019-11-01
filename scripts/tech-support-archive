@@ -1,0 +1,97 @@
+#!/bin/vcli -f
+# Copyright (c) 2017-2019, AT&T Intellectual Property.
+# Copyright (c) 2014-2017 by Brocade Communications Systems, Inc.
+# All rights reserved.
+#
+# SPDX-License-Identifier: GPL-2.0-only
+#
+# implement "generate tech-support archive"
+# usage: tech-support archive [ <filename> | <scp://> | <ftp://> ] [password <password>]
+
+FILE_NAME=0
+TS_SCRIPT=$vyatta_bindir/tech-support
+TS_FNS=$vyatta_datadir/vyatta-op/functions/tech-support.functions
+
+source "$TS_FNS"
+
+HOSTNAME=$(hostname)
+CURTIME=$(date +%F-%H%M%S)
+
+if [ -n "$1" ]; then
+	if [[ "$1" =~ scp:///* ]]; then
+		OUT="$HOSTNAME.tech-support-archive.$CURTIME"
+		REMOTE="1"
+	elif [[ "$1" =~ ftp:///* ]]; then
+		OUT="$HOSTNAME.tech-support-archive.$CURTIME"
+		REMOTE="1"
+	else
+		#file to be save locally
+		OUT="$1.$HOSTNAME.tech-support-archive.$CURTIME"
+	fi
+else
+	OUT="$HOSTNAME.tech-support-archive.$CURTIME"
+fi
+
+# set for directory creation with permissions set to 775
+umask 0002 >& /dev/null
+if [[ "$OUT" != /* ]]; then
+	FILE_NAME="$OUT"
+	do_rotate 5 "*.tech-support-archive.*"
+	# it's not absolute path. save in default path.
+	OUT="$DEFAULT_PATH/$OUT"
+	mkdir -p "$OUT" >& /dev/null
+	chgrp "$DEFAULT_GROUP" "$OUT" >& /dev/null
+else
+	mkdir -p "$OUT" >& /dev/null
+	chgrp "$DEFAULT_GROUP" "$OUT" >& /dev/null
+	FILE_NAME=$(echo "$OUT" | sed -e 's/\//\n/g' | tail -1) 
+fi
+
+# set for file creation with permissions set to 640
+umask 0137 >& /dev/null
+
+builtin cd "$OUT"
+
+echo "Collecting /config ..."
+tar --exclude="*tech-support-archive*" -zcf config.tgz /config >& /dev/null
+
+echo "Collecting /etc ..."
+tar -zcf etc.tgz /etc >& /dev/null
+
+echo "Collecting /home ..."
+tar --exclude=.bash_history -zcf home.tgz /home >& /dev/null
+
+echo "Collecting /var/log ..."
+tar -zcf var-log.tgz /var/log >& /dev/null
+
+echo "Collecting /root ..."
+tar -zcf root.tgz /root >& /dev/null
+
+echo "Collecting /tmp ..."
+tar -zcf tmp.tgz /tmp >& /dev/null
+
+echo "Collecting core dumps ..."
+tar -zcf core-dump.tgz /var/core /var/lib/systemd/coredump >& /dev/null
+
+echo
+
+"$TS_SCRIPT" archive save "${OUT}"/state
+mv state* current-state.gz
+
+builtin cd "../"
+tar -zcvf "$FILE_NAME".tgz "$FILE_NAME" >& /dev/null 
+rm -r "$FILE_NAME"
+OUT="$OUT".tgz 
+echo "Saved tech-support archive at $OUT"
+
+if [ "$ENCRYPT" == "1" ]; then
+	unencrypted_out="$OUT"
+	OUT="$OUT".gpg
+	encrypt_file "$unencrypted_out" "$FILEPASS" "$OUT"
+	echo "Saved encrypted tech-support archive at $OUT"
+fi
+if [ "$REMOTE" == "1" ]; then
+	remote_copy "$OUT" "$1"
+fi
+
+exit

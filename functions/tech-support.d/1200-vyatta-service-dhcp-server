@@ -1,0 +1,19 @@
+#! /bin/bash
+#
+# Copyright (c) 2019, AT&T Intellectual Property. All rights reserved.
+# Copyright (c) 2014-2016 by Brocade Communications Systems, Inc.
+# All rights reserved.
+#
+# SPDX-License-Identifier: GPL-2.0-only
+
+source "$(cd "$(dirname "${0}")" && pwd -P)"/../tech-support.functions
+
+header DHCP Server "$DEFAULT_VRF_NAME"
+if cli-shell-api existsActive service dhcp-server; then
+	header DHCP Leases "$DEFAULT_VRF_NAME"
+	time_out_sec 15s "run show dhcp server leases"
+	header DHCP Statistics "$DEFAULT_VRF_NAME"
+	time_out_sec 15s "run show dhcp server statistics"
+else
+	echo "DHCP server is not configured"
+fi

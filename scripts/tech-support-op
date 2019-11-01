@@ -1,0 +1,94 @@
+#!/usr/bin/python3
+
+# Copyright (c) 2019, AT&T Intellectual Property. All rights reserved.
+# SPDX-License-Identifier: GPL-2.0-only
+
+"""
+This script is a shim layer between opd and the scripts which implement
+the tech support related operational commands. All invocations of tech
+support operational commands are performed via this script.
+
+We receive the operational command arguments from opd via the JSON encoded
+OPC_ARGS environment variable. This is done to avoid leaking any sensitive
+arguments (eg. passphrases) in the process list - in the data model we
+intentionally never pass any values to this script via positional arguments.
+
+For example, suppose we execute "generate tech-support archive password foo".
+We are called with an OPC_ARGS value of:
+    { "args" : [ "generate", "tech-support", "archive", "password", "foo" ] }
+
+The JSON is decoded and we use the first argument to lookup CMDS for the correct
+handler script and the (zero-based) start of the arguments which are passed to
+that script. The argument list is parsed from this point with known sensitive
+arguments removed and placed into environment variables which are understood by
+the tech support scripts.
+
+Following parsing we have an empty arg list and VYATTA_TECH_SUPPORT_FILE_PASS=bar
+is present in our environment. Finally we exec the handler script with the parsed
+argument list in our current environment.
+"""
+
+import json
+import os
+import sys
+
+ARGS_ENV = "OPC_ARGS"
+
+def print_err(msg):
+    print(msg, file=sys.stderr)
+
+def load_opc_args_from_env():
+    if ARGS_ENV not in os.environ:
+        print_err("{} is not set!".format(ARGS_ENV))
+        sys.exit(1)
+
+    try:
+        return json.loads(os.environ.pop(ARGS_ENV))["args"]
+    except Exception as e:
+        print_err("Failed to decode {}: {}".format(ARGS_ENV, e))
+        sys.exit(1)
+
+def move_sensitive_args_to_env(args):
+    out_args = []
+    i = 0
+
+    while i < len(args):
+        if args[i] == "authentication":
+            i += 2 # skip over "username" keyword
+            os.environ["VYATTA_TECH_SUPPORT_COPY_USER"] = args[i]
+            i += 2 # skip over "password" keyword
+            os.environ["VYATTA_TECH_SUPPORT_COPY_PASS"] = args[i]
+        elif args[i] in ("password", "file-password"):
+            i += 1
+            os.environ["VYATTA_TECH_SUPPORT_FILE_PASS"] = args[i]
+        else:
+            out_args.append(args[i])
+        i += 1
+
+    return out_args
+
+CMDS = {
+    "generate" : {
+        "handler"   : "/opt/vyatta/bin/tech-support-archive",
+        "first-arg" : 3,
+    },
+    "show" : {
+        "handler"   : "/opt/vyatta/bin/tech-support",
+        "first-arg" : 2,
+    },
+}
+
+def main():
+    opc_args = load_opc_args_from_env()
+
+    cmd = CMDS.get(opc_args[0])
+    if cmd is None:
+        print_err("Unknown first argument: {}".format(opc_args[0]))
+        sys.exit(1)
+
+    opc_args = move_sensitive_args_to_env(opc_args[cmd["first-arg"]:])
+
+    os.execv(cmd["handler"], [cmd["handler"]] + opc_args)
+
+if __name__ == "__main__":
+    main()

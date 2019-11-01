@@ -1,0 +1,21 @@
+#! /bin/bash
+#
+# Copyright (c) 2019, AT&T Intellectual Property. All rights reserved.
+# Copyright (c) 2014-2016 by Brocade Communications Systems, Inc.
+# All rights reserved.
+#
+# SPDX-License-Identifier: GPL-2.0-only
+
+source "$(cd "$(dirname "${0}")" && pwd -P)"/../tech-support.functions
+
+header NAT
+if cli-shell-api existsActive service nat; then
+	header NAT Summary
+	time_out "run show nat"
+	header NAT Source Statistics
+	time_out "run show nat source statistics"
+	header NAT Destination Statistics
+	time_out "run show nat destination statistics"
+else
+	echo "NAT is not configured"
+fi

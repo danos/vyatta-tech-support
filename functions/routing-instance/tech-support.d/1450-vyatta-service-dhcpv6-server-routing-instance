@@ -1,0 +1,22 @@
+#! /bin/bash
+#
+# Copyright (c) 2019, AT&T Intellectual Property. All rights reserved.
+# Copyright (c) 2014-2016 by Brocade Communications Systems, Inc.
+# All rights reserved.
+#
+# SPDX-License-Identifier: GPL-2.0-only
+
+source "$(cd "$(dirname "${0}")" && pwd -P)"/../tech-support.functions
+
+eval "vrf_names=($(cli-shell-api listActiveNodes routing routing-instance))"
+for vrf_name in "${vrf_names[@]}"; do
+	header "DHCPV6 Server - Routing Instance: $vrf_name"
+	if cli-shell-api existsActive routing routing-instance "$vrf_name" service dhcpv6-server; then
+		header "DHCPV6 Server Status - Routing Instance: $vrf_name"
+		time_out "run show dhcpv6 server status routing-instance $vrf_name"
+		header "DHCPV6 Server Leases - Routing Instance: $vrf_name"
+		time_out "run show dhcpv6 server leases routing-instance $vrf_name"
+	else
+		echo "DHCPV6 server is not configured"
+	fi
+done

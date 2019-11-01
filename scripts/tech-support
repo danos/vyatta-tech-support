@@ -1,0 +1,126 @@
+#!/bin/vcli -f
+# Copyright (c) 2019, AT&T Intellectual Property. All rights reserved.
+# Copyright (c) 2014-2016 by Brocade Communications Systems, Inc.
+# All rights reserved.
+#
+# SPDX-License-Identifier: GPL-2.0-only
+#
+# implement "show tech-support"
+# usage: tech-support [brief] [ save | save-uncompressed [ <filename> ] ] [password <password>]
+
+source "$vyatta_datadir/vyatta-op/functions/tech-support.functions"
+
+HOSTNAME=$(hostname)
+CURTIME=$(date +%F-%H%M%S)
+
+#
+# Process command line parameters
+#
+SCRIPTS_DIR="$TECH_SUPPORT_SCRIPTS_DIR"
+OUTPUT_HEADER="Show Tech-Support"
+COMPRESS=""
+BRIEF=false
+while [ -n "$1" ]; do
+	if [ "$1" == "brief" ]; then
+		SCRIPTS_DIR="$TECH_SUPPORT_BRIEF_SCRIPTS_DIR"
+		OUTPUT_HEADER="Show Tech-Support Brief"
+		BRIEF=true
+	elif [ "$1" == "save" ]; then
+		COMPRESS="1"
+		if [ -n "$2" ] && [ "$2" != "password" ]; then
+			DEST="$2"
+			shift
+		fi
+	elif [ "$1" == "save-uncompressed" ]; then
+		COMPRESS="0"
+		if [ -n "$2" ] && [ "$2" != "password" ]; then
+			DEST="$2"
+			shift
+		fi
+	elif [ "$1" == "archive" ]; then
+		ARG="$1"
+	fi
+	shift	
+done
+
+if [ "$BRIEF" == "false" ]; then
+    cat <<EOF
+Note: Support output may contain plaintext secrets such as passphrases and keys
+      Please audit/redact the output to your requirements before transmission
+
+EOF
+fi
+
+if [ -n "$COMPRESS" ]; then
+	# "save" or save-uncompressed is specified. save output to file.
+	OUT="$HOSTNAME.tech-support.$CURTIME.txt"
+	if [ -n "$DEST" ]; then
+		if [[ "$DEST" =~ scp:///* || "$DEST" =~ ftp:///*  ]]; then	
+			REMOTE="1" 
+		else
+			#file to be save locally
+			OUT="$DEST.$OUT"
+		fi
+	fi
+	
+	if [[ "$OUT" != /* ]]; then
+		# it's not absolute path. save in default path.
+		umask 0002 >& /dev/null
+		mkdir -p "$DEFAULT_PATH" >& /dev/null
+		chgrp "$DEFAULT_GROUP" "$DEFAULT_PATH" >& /dev/null
+		OUT="$DEFAULT_PATH/$OUT"
+		do_rotate 100 "*.tech-support.*"
+	fi
+	umask 0137 >& /dev/null
+	if ! touch "$OUT" >& /dev/null; then
+		echo "Cannot create tech-support file '$OUT'"
+		exit 1
+	fi
+	if [ "$REMOTE" != "1" ]; then	 
+	 echo "Saving output to $OUT ..."
+	fi
+fi
+
+# Run as subshell to capture output
+(
+export PATH=/sbin:/usr/sbin:"$PATH"
+
+header "$OUTPUT_HEADER"	
+	
+header "Current Time"
+do_cmd date
+
+ 
+#
+# This section executes the scripts in the SCRIPTS_DIR
+#
+run-parts --arg="$ARG" "$SCRIPTS_DIR"
+
+header "END OF TECH-SUPPORT FILE"
+) 1>&"$OUT" 2>&1
+
+if [ "$OUT" != "1" ]; then
+	chgrp "$DEFAULT_GROUP" "$OUT" >& /dev/null
+	if [ "$COMPRESS" == "1" ]; then 
+		gzip "$OUT"
+		OUT="$OUT".gz 
+		if [ "$REMOTE" != "1" ]; then 
+			echo "Compressed File: $OUT"
+		fi 
+	fi 
+	if [ $ENCRYPT == "1" ]; then
+		unencrypted_out="$OUT"
+		OUT="$OUT".gpg
+		encrypt_file "$unencrypted_out" "$FILEPASS" "$OUT"
+		if [ "$REMOTE" != "1" ]; then 
+			echo "Password Protected File: $OUT"
+		fi
+	fi
+	if [ "$REMOTE" != "1" ]; then 
+	 echo "Done"
+	fi
+fi
+
+if [ "$REMOTE" == "1" ]; then 
+	remote_copy "$OUT" "$DEST"
+fi

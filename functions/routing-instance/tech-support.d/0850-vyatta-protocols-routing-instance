@@ -1,0 +1,52 @@
+#! /bin/bash
+#
+# Copyright (c) 2019, AT&T Intellectual Property. All rights reserved.
+# Copyright (c) 2014-2016 by Brocade Communications Systems, Inc.
+# All rights reserved.
+#
+# SPDX-License-Identifier: GPL-2.0-only
+
+source "$(cd "$(dirname "${0}")" && pwd -P)"/../tech-support.functions
+
+
+function show_route_limit ()
+{
+	CMD="run show $1 route routing-instance $4"
+	if [ -n "$2" ]; then
+		CMD="$CMD $2"
+	fi
+	NUM=$($CMD | wc -l)
+	# subtract 3 lines of header
+	[ "$NUM" -gt 3 ] && NUM=$((NUM - 3))
+	OUTPUT="$CMD (total $NUM)"
+	if [ "$3" -eq 0 ]; then
+		header CLI: "$OUTPUT"
+		$CMD
+	else
+		header "CLI: $OUTPUT - limit $3"
+		$CMD | head -n "$3"
+	fi
+}
+
+eval "vrf_names=($(cli-shell-api listActiveNodes routing routing-instance))"
+for vrf_name in "${vrf_names[@]}"; do
+
+	header ROUTING - Routing Instance: "$vrf_name"
+
+	#
+	# show all connected/static, limit the output others and include a total
+	#
+	show_route_limit ip connected 0 "$vrf_name"
+	show_route_limit ip static 0 "$vrf_name"
+	show_route_limit ip rip	500 "$vrf_name"
+	show_route_limit ip ospf 500 "$vrf_name"
+	show_route_limit ip bgp	500 "$vrf_name"
+	show_route_limit ip ''	 500 "$vrf_name"
+
+	show_route_limit ipv6 connected 0 "$vrf_name"
+	show_route_limit ipv6 static 0 "$vrf_name"
+	show_route_limit ipv6 ripng 500 "$vrf_name"
+	show_route_limit ipv6 ospfv3 500 "$vrf_name"
+	show_route_limit ipv6 bgp 500 "$vrf_name"
+	show_route_limit ipv6 '' 500 "$vrf_name"
+done

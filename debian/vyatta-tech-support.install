@@ -1,0 +1,6 @@
+scripts/tech-support-archive opt/vyatta/bin
+scripts/tech-support-op opt/vyatta/bin
+scripts/tech-support opt/vyatta/bin
+functions/tech-support.functions opt/vyatta/share/vyatta-op/functions
+functions/tech-support.d opt/vyatta/share/vyatta-op/functions
+functions/tech-support-brief.d opt/vyatta/share/vyatta-op/functions

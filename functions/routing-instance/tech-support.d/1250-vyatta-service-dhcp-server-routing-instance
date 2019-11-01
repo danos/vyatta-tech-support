@@ -1,0 +1,22 @@
+#! /bin/bash
+#
+# Copyright (c) 2019, AT&T Intellectual Property. All rights reserved.
+# Copyright (c) 2014-2016 by Brocade Communications Systems, Inc.
+# All rights reserved.
+#
+# SPDX-License-Identifier: GPL-2.0-only
+
+source "$(cd "$(dirname "${0}")" && pwd -P)"/../tech-support.functions
+
+eval "vrf_names=($(cli-shell-api listActiveNodes routing routing-instance))"
+for vrf_name in "${vrf_names[@]}"; do
+	header "DHCP Server - Routing Instance: $vrf_name"
+	if cli-shell-api existsActive routing routing-instance "$vrf_name" service dhcp-server; then
+		header "DHCP Leases - Routing Instance: $vrf_name"
+		time_out_sec 15s "run show dhcp server leases routing-instance $vrf_name"
+		header "DHCP Statistics - Routing Instance: $vrf_name"
+		time_out_sec 15s "run show dhcp server statistics routing-instance $vrf_name"
+	else
+		echo "DHCP server is not configured"
+	fi
+done

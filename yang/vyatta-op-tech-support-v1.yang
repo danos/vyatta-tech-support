@@ -1,0 +1,142 @@
+module vyatta-op-tech-support-v1 {
+	namespace "urn:vyatta.com:mgmt:vyatta-op-tech-support:1";
+	prefix vyatta-op-tech-support-v1;
+
+	import vyatta-opd-extensions-v1 {
+		prefix opd;
+	}
+	import vyatta-op-generate-v1 {
+		prefix generate;
+	}
+	import vyatta-op-show-v1 {
+		prefix show;
+	}
+
+	organization "AT&T, Inc.";
+	contact
+		"AT&T
+		 Postal: 208 S. Akard Street
+				 Dallas, TX 25202
+		 Web: www.att.com";
+
+	description
+		"Copyright (c) 2019, AT&T Intellectual Property.
+		 All rights reserved.
+
+		 Redistribution and use in source and binary forms, with or without
+		 modification, are permitted provided that the following conditions
+		 are met:
+
+		   1. Redistributions of source code must retain the above copyright
+		      notice, this list of conditions and the following disclaimer.
+		   2. Redistributions in binary form must reproduce the above
+		      copyright notice, this list of conditions and the following
+		      disclaimer in the documentation and/or other materials provided
+		      with the distribution.
+		   3. Neither the name of the copyright holder nor the names of its
+		      contributors may be used to endorse or promote products derived
+		      from this software without specific prior written permission.
+
+		 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+		 'AS IS' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+		 LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+		 FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+		 COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+		 INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+		 BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+		 LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+		 CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+		 LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+		 ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+		 POSSIBILITY OF SUCH DAMAGE.
+
+		 SPDX-License-Identifier: BSD-3-Clause
+
+		 Defines the tech support operational CLI";
+
+	revision 2019-06-21 {
+		description "Initial version";
+	}
+
+	grouping archive-password-option {
+		opd:option password {
+			type string;
+			opd:help "Password to protect archive file";
+			opd:secret true;
+		}
+	}
+
+	grouping save-options {
+		opd:argument destination {
+			type string;
+			opd:help "Generate compressed tech-support archive at the specified path";
+			opd:allowed "echo -n '<file> <scp://<host>/<file>> <ftp://<host>/<file>>'";
+
+			opd:command authentication {
+				opd:help "Authentication parameters for saving to remote host";
+				opd:on-enter "";
+
+				opd:option username {
+					opd:help "Remote host username";
+					opd:on-enter "";
+					type string;
+
+					opd:option password {
+						opd:help "Remote host password";
+						type string;
+						opd:secret true;
+
+						opd:option file-password {
+							opd:help "Password to protect archive file";
+							type string;
+							opd:secret true;
+						}
+					}
+				}
+			}
+
+			uses archive-password-option;
+		}
+		uses archive-password-option;
+	}
+
+	opd:augment /generate:generate {
+		opd:command tech-support {
+			opd:help "Generate tech-support archive";
+			opd:command archive {
+				opd:inherit "" {
+					opd:pass-opc-args true;
+					opd:privileged true;
+					opd:on-enter "${vyatta_bindir}/tech-support-op";
+				}
+				opd:help "Generate tech-support archive";
+				uses save-options;
+			}
+		}
+	}
+
+	opd:augment /show:show {
+		opd:command tech-support {
+			opd:inherit "" {
+				opd:pass-opc-args true;
+				opd:privileged true;
+				opd:on-enter "${vyatta_bindir}/tech-support-op";
+			}
+			opd:repeatable true;
+			opd:help "Show tech-support report";
+			opd:command brief {
+				opd:help "Show brief tech-support report";
+			}
+			opd:command save {
+				opd:repeatable false;
+				opd:help "Save consolidated tech-support report";
+				uses save-options;
+			}
+			opd:command save-uncompressed {
+				opd:repeatable false;
+				opd:help "Save consolidated tech-support report uncompressed";
+				uses save-options;
+			}
+		}
+	}
+}

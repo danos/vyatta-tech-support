@@ -1,0 +1,24 @@
+#! /bin/bash
+#
+# Copyright (c) 2019, AT&T Intellectual Property. All rights reserved.
+# Copyright (c) 2014-2016 by Brocade Communications Systems, Inc.
+# All rights reserved.
+#
+# SPDX-License-Identifier: GPL-2.0-only
+
+source "$(cd "$(dirname "${0}")" && pwd -P)"/../tech-support.functions
+
+eval "vrf_names=($(cli-shell-api listActiveNodes routing routing-instance))"
+for vrf_name in "${vrf_names[@]}"; do
+	header "DNS - Routing Instance: $vrf_name"
+	if cli-shell-api existsActive service dns; then
+		header "DNS Dynamic Status - Routing Instance: $vrf_name"
+		time_out "run show dns dynamic status routing-instance $vrf_name"
+		header "DNS Forwarding Statistics - Routing Instance: $vrf_name"
+		time_out "run show dns forwarding statistics routing-instance $vrf_name"
+		header "DNS Forwarding Nameservers - Routing Instance: $vrf_name"	
+		time_out "run show dns forwarding nameservers routing-instance $vrf_name"
+	else
+		echo "DNS is not configured"
+	fi
+done

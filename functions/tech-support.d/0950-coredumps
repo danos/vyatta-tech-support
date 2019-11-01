@@ -1,0 +1,22 @@
+#! /bin/bash
+#
+# Copyright (c) 2019, AT&T Intellectual Property. All rights reserved.
+# Copyright (c) 2017 by Brocade Communications Systems, Inc.
+# All rights reserved.
+#
+# SPDX-License-Identifier: GPL-2.0-only
+
+source "$(cd "$(dirname "${0}")" && pwd -P)"/../tech-support.functions
+
+header COREDUMPS
+
+if package_exists systemd-coredump; then
+	if coredumpctl list &> /dev/null ; then
+		do_cmd coredumpctl info
+	else
+		echo "No systemd-coredump coredumps found in the journal"
+	fi
+	do_cmd ls -lsa /var/lib/systemd/coredump
+else
+	echo "systemd-coredump not installed"
+fi

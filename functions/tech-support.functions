@@ -1,0 +1,141 @@
+#!/bin/bash
+# Copyright (c) 2019, AT&T Intellectual Property. All rights reserved.
+# Copyright (c) 2014-2016 by Brocade Communications Systems, Inc.
+# All rights reserved.
+#
+# SPDX-License-Identifier: LGPL-2.1-only
+
+# by default send to stdout
+OUT=1
+FLAG=0
+REMOTE=0
+ENCRYPT=0
+DEFAULT_PATH=/config/support
+DEFAULT_GROUP=users
+TECH_SUPPORT_SCRIPTS_DIR=/opt/vyatta/share/vyatta-op/functions/tech-support.d
+TECH_SUPPORT_BRIEF_SCRIPTS_DIR=/opt/vyatta/share/vyatta-op/functions/tech-support-brief.d
+VRF_MGR_PACKAGE=vrf-manager
+
+if [ -n "$VYATTA_TECH_SUPPORT_FILE_PASS" ]; then
+	ENCRYPT="1"
+	FILEPASS="$VYATTA_TECH_SUPPORT_FILE_PASS"
+	unset VYATTA_TECH_SUPPORT_FILE_PASS
+fi
+
+COPY_USER="$VYATTA_TECH_SUPPORT_COPY_USER"
+unset VYATTA_TECH_SUPPORT_COPY_USER
+
+COPY_PASS="$VYATTA_TECH_SUPPORT_COPY_PASS"
+unset VYATTA_TECH_SUPPORT_COPY_PASS
+
+function header {
+		echo
+		echo ----------------
+		echo "$*"
+		echo ----------------
+}
+
+function header2 {
+		echo
+		echo --------------------------------------
+		echo "$*"
+		echo --------------------------------------
+}
+
+function do_cmd_header {
+		echo
+		echo "CLI: $*"
+		echo
+}
+
+function do_cmd {
+		do_cmd_header "$*"
+		"$@"
+}
+
+function package_exists() {
+    dpkg -s "$1" &> /dev/null 
+}
+
+if package_exists $VRF_MGR_PACKAGE; then
+    DEFAULT_VRF_NAME="- Routing Instance: default"
+else
+    DEFAULT_VRF_NAME=""    
+fi
+
+function package_version() {
+    dpkg-query -f='${Version}' -W "$1"
+}
+
+do_rotate ()
+{
+	local limit=$1
+	local match="$2"
+
+	local count=$(ls -t "$DEFAULT_PATH/"$match 2>/dev/null |wc -l)
+	if (( count >= $limit )); then
+		local dfile=$(ls -t "$DEFAULT_PATH/"$match 2>/dev/null |tail -1)
+		rm -f "$dfile" >&/dev/null \
+			&& echo "Removed old tech-support output file '$dfile'"
+	fi
+}
+
+function time_out_sec ()
+{
+	do_cmd_header "$2"
+	timeout_sec=$1
+ 	/usr/bin/timeout -sKILL "$timeout_sec" /bin/vcli -c "$2"
+	if (( $? == 137 )) ; then
+		echo "Command \"$2\" timed out by $1."
+	fi
+}
+
+function time_out ()
+{
+	time_out_sec 15s "$1"
+}
+
+function check_md5sum ()
+{
+	local pkg="$1"
+	local file="$2"
+
+	[ -f "$file" ] || return 0
+
+	debsums -c -e "$pkg" | grep -q "$file"
+
+	return $(( ! $? ))
+}
+
+function encrypt_file ()
+{
+	local in_file="$1"
+	local passphrase="$2"
+	local out_file="$3"
+
+	echo "$passphrase" | gpg -q -o "$out_file" -c --passphrase-fd 0 --cipher-algo AES256 --batch "$in_file" &> /dev/null
+}
+
+function remote_copy() {
+	local file="$1"
+	local url="$2"
+
+	echo "Saving $file to $url";
+
+	# Silent, except errors.
+	curl_cmd="vyatta-curl-wrapper -Ss --upload-file"
+
+	if [ -n "$COPY_USER" ]; then
+		VYATTA_CURL_USER="$COPY_USER" VYATTA_CURL_PASS="$COPY_PASS" $curl_cmd "$file" "$url"
+	else
+		$curl_cmd "$file" "$url"
+	fi
+
+	rc=$?
+	if [ $rc -ne 0 ]; then
+		echo "Failed, is your url correct?"
+	else
+		echo "Success"
+	fi
+	return $rc
+}

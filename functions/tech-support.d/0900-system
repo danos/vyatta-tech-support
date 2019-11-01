@@ -1,0 +1,123 @@
+#! /bin/bash
+#
+# Copyright (c) 2019 AT&T Intellectual Property.
+# All rights reserved.
+#
+# Copyright (c) 2014-2016 by Brocade Communications Systems, Inc.
+# All rights reserved.
+#
+# SPDX-License-Identifier: GPL-2.0-only
+
+source "$(cd "$(dirname "${0}")" && pwd -P)"/../tech-support.functions
+
+header SYSTEM
+
+header Installed Packages
+if dpkg --compare-versions $(package_version "dpkg") ge "1.19.2"; then
+    do_cmd dpkg -l --no-pager
+else
+    do_cmd /usr/bin/env COLUMNS=200 dpkg -l
+fi
+
+header /proc
+do_cmd ls -la /proc
+
+header Loaded Modules
+do_cmd cat /proc/modules
+
+header CPU
+
+header Installed CPU/s
+do_cmd lscpu
+
+header "Process Snapshot"
+do_cmd /usr/bin/top -cbH -n 1 -S -w 512 -b
+
+header Hardware Interrupt Counters
+do_cmd cat /proc/interrupts
+
+header Load Average
+do_cmd cat /proc/loadavg
+
+header Memory
+
+header Installed Memory
+do_cmd cat /proc/meminfo
+
+header Memory Usage
+do_cmd free
+
+header Storage
+
+header Devices
+do_cmd cat /proc/devices
+
+header Partitions
+do_cmd cat /proc/partitions
+
+disks=$(awk '{ if ($4!="name") { print $4 } }' < /proc/partitions | egrep -v "[0-9]$" | egrep -v "^$")
+
+for disk in $disks; do
+		header "Partitioning for disk $disk"
+		do_cmd fdisk -l /dev/"$disk"
+done
+
+header Mounts
+do_cmd cat /proc/mounts
+
+header Diskstats
+do_cmd cat /proc/diskstats
+
+header Hard Drive Usage
+do_cmd df -h -x squashfs
+
+header General System
+
+header "Recent Kernel messages (dmesg)"
+do_cmd dmesg
+
+header PCI Info
+do_cmd lspci -vvx
+
+header PCI Vendor and Device Codes
+do_cmd lspci -nn
+
+header System Info
+do_cmd "${vyatta_bindir}"/vyatta-show-dmi
+
+header GRUB Command line
+do_cmd cat /proc/cmdline
+
+header Open Ports
+do_cmd lsof -P -n -i
+
+if [ "$1" == "archive" ]; then
+	header List open files
+	do_cmd lsof -b +M -n -l
+fi
+
+header System Startup Files
+do_cmd ls -l /etc/rc?.d
+
+if [ -e "/root/.bash_history" ]; then
+    header Bash History for root
+    perl -MPOSIX -n -e '/^#[0-9]*/ && do { $t = substr($_, 1); $_ = <>; print POSIX::strftime("%FT%T%z", localtime($t)), " ", $_; };' < "/root/.bash_history" | sort -u
+fi
+
+header Login History
+do_cmd last -ix
+
+header Recent Log Messages
+do_cmd tail -n 250 /var/log/messages
+
+header Recent Systemd Journal Messages
+do_cmd journalctl -n 250 --no-pager
+
+header Systemd Journal errors alerts Since Yesterday
+do_cmd journalctl -a -p err..alert --since="yesterday" --no-pager
+
+header Systemd Status
+do_cmd systemctl --no-pager
+
+header Systemd Failed
+do_cmd systemctl --failed --no-pager

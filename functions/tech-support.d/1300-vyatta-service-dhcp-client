@@ -1,0 +1,27 @@
+#! /bin/bash
+#
+# Copyright (c) 2019, AT&T Intellectual Property. All rights reserved.
+# Copyright (c) 2014-2016 by Brocade Communications Systems, Inc.
+# All rights reserved.
+#
+# SPDX-License-Identifier: GPL-2.0-only
+
+source "$(cd "$(dirname "${0}")" && pwd -P)"/../tech-support.functions
+
+header DHCP Client "$DEFAULT_VRF_NAME"
+is_dhcp=$(run show dhcp client leases | wc -l)
+if [ "$is_dhcp" == "1" ]; then
+	echo "DHCP client is not configured"
+else
+	header DHCP Client Leases "$DEFAULT_VRF_NAME"
+	do_cmd run show dhcp client leases
+fi
+
+header DHCPV6 Client "$DEFAULT_VRF_NAME"
+is_dhcp=$(run show dhcpv6 client leases | wc -l)
+if [ "$is_dhcp" == "1" ]; then
+	echo "DHCPV6 client is not configured"
+else
+	header DHCPV6 Client Leases "$DEFAULT_VRF_NAME" 
+	do_cmd run show dhcpv6 client leases
+fi
