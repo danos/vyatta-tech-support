@@ -31,7 +31,10 @@ header Installed CPU/s
 do_cmd lscpu
 
 header "Process Snapshot"
-do_cmd /usr/bin/top -cbH -n 1 -S -w 512 -b
+do_cmd /usr/bin/top -bH -n 1 -S -w 512
+
+header "Process Snapshot (with command lines)"
+do_cmd /usr/bin/top -cbH -n 1 -S -w 512
 
 header Hardware Interrupt Counters
 do_cmd cat /proc/interrupts

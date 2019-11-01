@@ -25,18 +25,44 @@ Depends:
  ${misc:Depends},
  ${perl:Depends},
  ${python3:Depends}
-Breaks: vyatta-op (<< 1.0)
-Replaces: vyatta-op (<< 1.0)
-Description: Tech-support helpers
- Helper for tech-support to gather information.
-
-Package: vyatta-tech-support-routing-instance
-Architecture: all
-Depends: 
- vyatta-tech-support,
- ${misc:Depends},
- ${perl:Depends}
-Breaks: vyatta-op (<< 1.0)
-Replaces: vyatta-op (<< 1.0)
-Description: Tech-support helpers
- Helper for tech-support to gather information for routing instances.
+Breaks:
+ vplane-config (<< 2.49),
+ vplane-config-npf (<< 1.13.2),
+ vplane-config-qos (<< 2.4.1),
+ vyatta-bmc (<< 0.6),
+ vyatta-dpi-v1-yang (<< 2.8),
+ vyatta-image-tools (<< 5.18),
+ vyatta-interfaces (<< 1.75),
+ vyatta-interfaces-bonding (<< 0.37),
+ vyatta-interfaces-routing-instance (<< 1.75),
+ vyatta-multicast (<< 1:1.8.2),
+ vyatta-op-network (<< 2.16),
+ vyatta-op-service-dns-routing-instance-v1-yang (<< 1.8),
+ vyatta-op-service-dns-v1-yang (<< 1.8),
+ vyatta-op-show-switch-v1-yang (<< 1.75),
+ vyatta-openvpn (<< 0.5.5),
+ vyatta-protocols-bfd-v1-yang (<< 1.14.3),
+ vyatta-protocols-bgp-routing-instance-v1-yang (<< 1.14.4),
+ vyatta-protocols-bgp-v1-yang (<< 1.14.4),
+ vyatta-protocols-common (<< 1.13.1),
+ vyatta-protocols-ospf-routing-instance-v1-yang (<< 1.14.4),
+ vyatta-protocols-ospf-v1-yang (<< 1.14.4),
+ vyatta-protocols-ospfv3-routing-instance-v1-yang (<< 1.14.4),
+ vyatta-protocols-ospfv3-v1-yang (<< 1.14.4),
+ vyatta-protocols-rip-routing-instance-v1-yang (<< 1.14.4),
+ vyatta-protocols-rip-v1-yang (<< 1.14.4),
+ vyatta-protocols-ripng-routing-instance-v1-yang (<< 1.14.4),
+ vyatta-protocols-ripng-v1-yang (<< 1.14.4),
+ vyatta-security-vpn (<< 1.37),
+ vyatta-service-bridge (<< 2.8),
+ vyatta-service-dhcp-client (<< 0.13),
+ vyatta-service-dhcp-relay (<< 0.13),
+ vyatta-service-dhcp-server (<< 0.13),
+ vyatta-service-dhcp-server-routing-instance-v1-yang (<< 0.13),
+ vyatta-service-dhcpv6-relay-routing-instance-v1-yang (<< 0.13),
+ vyatta-service-dhcpv6-server-routing-instance-v1-yang (<< 0.13),
+ vyatta-system (<< 2.25),
+ vyatta-vrrp (<< 2.18)
+Description: Tech Support Infrastructure
+ Infrastructure to support gathering of debugging information of system
+ components to assist in technical support.
