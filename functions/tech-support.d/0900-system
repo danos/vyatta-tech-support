@@ -30,11 +30,19 @@ header CPU
 header Installed CPU/s
 do_cmd lscpu
 
-header "Process Snapshot"
-do_cmd /usr/bin/top -bH -n 1 -S -w 512
+if [ -n "$VYATTA_TECH_SUPPORT_SCRATCH_DIR" ]; then
+    (
+        # Set $HOME to our scratch directory within this subshell,
+        # to avoid top creating $HOME/.config owned by root.
+        export HOME="$VYATTA_TECH_SUPPORT_SCRATCH_DIR"
 
-header "Process Snapshot (with command lines)"
-do_cmd /usr/bin/top -cbH -n 1 -S -w 512
+        header "Process Snapshot"
+        do_cmd /usr/bin/top -bH -n 1 -S -w 512
+
+        header "Process Snapshot (with command lines)"
+        do_cmd /usr/bin/top -cbH -n 1 -S -w 512
+    )
+fi
 
 header Hardware Interrupt Counters
 do_cmd cat /proc/interrupts
