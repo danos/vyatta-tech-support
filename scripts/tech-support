@@ -51,6 +51,8 @@ Note: Support output may contain plaintext secrets such as passphrases and keys
 EOF
 fi
 
+create_scratch_dir || exit 1
+
 if [ -n "$COMPRESS" ]; then
 	# "save" or save-uncompressed is specified. save output to file.
 	OUT="$HOSTNAME.tech-support.$CURTIME.txt"
@@ -80,8 +82,6 @@ if [ -n "$COMPRESS" ]; then
 	 echo "Saving output to $OUT ..."
 	fi
 fi
-
-create_scratch_dir || exit 1
 
 # Run as subshell to capture output
 (

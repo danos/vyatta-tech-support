@@ -113,7 +113,9 @@ function encrypt_file ()
 	local passphrase="$2"
 	local out_file="$3"
 
-	echo "$passphrase" | gpg -q -o "$out_file" -c --passphrase-fd 0 --cipher-algo AES256 --batch "$in_file" &> /dev/null
+	echo "$passphrase" | gpg -q -o "$out_file" -c --passphrase-fd 0 		 \
+						 --homedir "$VYATTA_TECH_SUPPORT_SCRATCH_DIR/.gnupg" \
+						 --cipher-algo AES256 --batch "$in_file" &> /dev/null
 }
 
 function remote_copy() {
@@ -146,7 +148,13 @@ create_scratch_dir() {
 	local scratch_dir="$(mktemp -d)"
 
 	if [ $? -ne 0 ] || [ -z "$scratch_dir" ]; then
-		echo "Failed to create scratch directory, output may be limited"
+		echo -n "Failed to create scratch directory, "
+
+		if [ "$ENCRYPT" == "1" ]; then
+			echo "unable to generate encrypted output"
+			return 1
+		fi
+		echo "output may be limited"
 	else
 		export VYATTA_TECH_SUPPORT_SCRATCH_DIR="$scratch_dir"
 		trap 'rm -rf "$VYATTA_TECH_SUPPORT_SCRATCH_DIR"' EXIT

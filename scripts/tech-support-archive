@@ -14,6 +14,8 @@ TS_FNS=$vyatta_datadir/vyatta-op/functions/tech-support.functions
 
 source "$TS_FNS"
 
+create_scratch_dir || exit 1
+
 HOSTNAME=$(hostname)
 CURTIME=$(date +%F-%H%M%S)
 
