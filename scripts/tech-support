@@ -81,13 +81,7 @@ if [ -n "$COMPRESS" ]; then
 	fi
 fi
 
-scratch_dir="$(mktemp -d)"
-if [ $? -ne 0 ] || [ -z "$scratch_dir" ]; then
-    echo "Failed to create scratch directory, output may be limited"
-else
-    export VYATTA_TECH_SUPPORT_SCRATCH_DIR="$scratch_dir"
-    trap 'rm -rf "$VYATTA_TECH_SUPPORT_SCRATCH_DIR"' EXIT
-fi
+create_scratch_dir || exit 1
 
 # Run as subshell to capture output
 (
