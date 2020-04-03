@@ -1,3 +1,12 @@
+vyatta-tech-support (1.2.2) unstable; urgency=medium
+
+  * tech-support: Create scratch directory
+  * 0900-system: use scratch $HOME for `top`
+  * tech-support.functions: Add create_scratch_dir fn
+  * tech-support.functions: Scratch gpg home dir (Fixes: VRVDR-49209)
+
+ -- Duncan Eastoe <duncan.eastoe@att.com>  Fri, 03 Apr 2020 10:38:09 +0100
+
 vyatta-tech-support (1.2.1) unstable; urgency=medium
 
   * DANOS Import master
