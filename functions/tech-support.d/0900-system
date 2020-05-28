@@ -118,9 +118,6 @@ fi
 header Login History
 do_cmd last -ix
 
-header Recent Log Messages
-do_cmd tail -n 250 /var/log/messages
-
 header Recent Systemd Journal Messages
 do_cmd journalctl -n 250 --no-pager
 
