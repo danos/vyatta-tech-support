@@ -1,3 +1,10 @@
+vyatta-tech-support (1.2.3) unstable; urgency=medium
+
+  [ Nicholas Brown ]
+  * Don't add /var/log/messages to tech-support (Closes: VRVDR-49447)
+
+ -- Duncan Eastoe <duncan.eastoe@att.com>  Fri, 05 Jun 2020 16:22:25 +0100
+
 vyatta-tech-support (1.2.2) unstable; urgency=medium
 
   * tech-support: Create scratch directory
