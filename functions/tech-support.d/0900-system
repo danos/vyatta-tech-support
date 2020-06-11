@@ -1,6 +1,6 @@
 #! /bin/bash
 #
-# Copyright (c) 2019 AT&T Intellectual Property.
+# Copyright (c) 2019-2020 AT&T Intellectual Property.
 # All rights reserved.
 #
 # Copyright (c) 2014-2016 by Brocade Communications Systems, Inc.
@@ -109,11 +109,6 @@ fi
 
 header System Startup Files
 do_cmd ls -l /etc/rc?.d
-
-if [ -e "/root/.bash_history" ]; then
-    header Bash History for root
-    perl -MPOSIX -n -e '/^#[0-9]*/ && do { $t = substr($_, 1); $_ = <>; print POSIX::strftime("%FT%T%z", localtime($t)), " ", $_; };' < "/root/.bash_history" | sort -u
-fi
 
 header Login History
 do_cmd last -ix

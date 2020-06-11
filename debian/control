@@ -23,7 +23,6 @@ Depends:
  vyatta-curl-wrapper (>= 0.6),
  vyatta-op,
  ${misc:Depends},
- ${perl:Depends},
  ${python3:Depends}
 Breaks:
  vplane-config (<< 2.49),
