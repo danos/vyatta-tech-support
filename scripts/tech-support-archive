@@ -1,12 +1,12 @@
 #!/bin/vcli -f
-# Copyright (c) 2017-2019, AT&T Intellectual Property.
+# Copyright (c) 2017-2020, AT&T Intellectual Property.
 # Copyright (c) 2014-2017 by Brocade Communications Systems, Inc.
 # All rights reserved.
 #
 # SPDX-License-Identifier: GPL-2.0-only
 #
 # implement "generate tech-support archive"
-# usage: tech-support archive [ <filename> | <scp://> | <ftp://> ] [password <password>]
+# usage: tech-support archive [ <filename> | <scp://> | <ftp://> ]
 
 FILE_NAME=0
 TS_SCRIPT=$vyatta_bindir/tech-support
@@ -67,7 +67,7 @@ echo "Collecting /var/log ..."
 tar -zcf var-log.tgz /var/log >& /dev/null
 
 echo "Collecting /root ..."
-tar -zcf root.tgz /root >& /dev/null
+tar --exclude=.bash_history -zcf root.tgz /root >& /dev/null
 
 echo "Collecting /tmp ..."
 tar -zcf tmp.tgz /tmp >& /dev/null

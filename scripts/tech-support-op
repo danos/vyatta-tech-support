@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-# Copyright (c) 2019, AT&T Intellectual Property. All rights reserved.
+# Copyright (c) 2019-2020, AT&T Intellectual Property. All rights reserved.
 # SPDX-License-Identifier: GPL-2.0-only
 
 """
@@ -61,6 +61,10 @@ def move_sensitive_args_to_env(args):
         elif args[i] in ("password", "file-password"):
             i += 1
             os.environ["VYATTA_TECH_SUPPORT_FILE_PASS"] = args[i]
+        elif args[i] == "option":
+            if args[i+1] == "exclude-command-history":
+                i += 1
+                os.environ["VYATTA_TECH_SUPPORT_EXCL_CMD_HIST"] = "1"
         else:
             out_args.append(args[i])
         i += 1

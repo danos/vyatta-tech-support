@@ -1,12 +1,12 @@
 #!/bin/vcli -f
-# Copyright (c) 2019, AT&T Intellectual Property. All rights reserved.
+# Copyright (c) 2019-2020, AT&T Intellectual Property. All rights reserved.
 # Copyright (c) 2014-2016 by Brocade Communications Systems, Inc.
 # All rights reserved.
 #
 # SPDX-License-Identifier: GPL-2.0-only
 #
 # implement "show tech-support"
-# usage: tech-support [brief] [ save | save-uncompressed [ <filename> ] ] [password <password>]
+# usage: tech-support [brief] [ save | save-uncompressed [ <filename> ] ]
 
 source "$vyatta_datadir/vyatta-op/functions/tech-support.functions"
 
@@ -48,6 +48,21 @@ Note: Support output may contain plaintext secrets such as passphrases and keys
       Please audit/redact the output to your requirements before transmission
 
 EOF
+
+if [ "$BRIEF" == "false" ]; then
+	if [ "$VYATTA_TECH_SUPPORT_EXCL_CMD_HIST" != "1" ]; then
+		cat <<EOF
+      Shell command history files will be collected in this report
+      The "exclude-command-history" option can be used to disable this collection
+
+EOF
+	else
+		cat <<EOF
+      Shell command history files will not be collected in this report
+
+EOF
+	fi
+fi
 
 create_scratch_dir || exit 1
 

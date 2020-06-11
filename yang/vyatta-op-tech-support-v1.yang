@@ -16,11 +16,11 @@ module vyatta-op-tech-support-v1 {
 	contact
 		"AT&T
 		 Postal: 208 S. Akard Street
-				 Dallas, TX 25202
+				 Dallas, TX 75202
 		 Web: www.att.com";
 
 	description
-		"Copyright (c) 2019, AT&T Intellectual Property.
+		"Copyright (c) 2019-2020, AT&T Intellectual Property.
 		 All rights reserved.
 
 		 Redistribution and use in source and binary forms, with or without
@@ -54,6 +54,9 @@ module vyatta-op-tech-support-v1 {
 
 		 Defines the tech support operational CLI";
 
+	revision 2020-06-11 {
+		description "Add exclude-command-history option";
+	}
 	revision 2019-06-21 {
 		description "Initial version";
 	}
@@ -63,6 +66,17 @@ module vyatta-op-tech-support-v1 {
 			type string;
 			opd:help "Password to protect archive file";
 			opd:secret true;
+		}
+	}
+
+	grouping report-options {
+		opd:command option {
+			opd:on-enter "";
+			opd:help "Tech support report collection options";
+
+			opd:command exclude-command-history {
+				opd:help "Disable collection of shell history files";
+			}
 		}
 	}
 
@@ -110,6 +124,8 @@ module vyatta-op-tech-support-v1 {
 					opd:on-enter "${vyatta_bindir}/tech-support-op";
 				}
 				opd:help "Generate tech-support archive";
+				opd:repeatable true;
+				uses report-options;
 				uses save-options;
 			}
 		}
@@ -124,6 +140,7 @@ module vyatta-op-tech-support-v1 {
 			}
 			opd:repeatable true;
 			opd:help "Show tech-support report";
+			uses report-options;
 			opd:command brief {
 				opd:help "Show brief tech-support report";
 			}

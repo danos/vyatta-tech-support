@@ -1,0 +1,29 @@
+#! /bin/bash
+#
+# Copyright (c) 2020 AT&T Intellectual Property.
+# All rights reserved.
+#
+# SPDX-License-Identifier: GPL-2.0-only
+
+source "$(cd "$(dirname "${0}")" && pwd -P)"/../tech-support.functions
+
+[ "$VYATTA_TECH_SUPPORT_EXCL_CMD_HIST" == "1" ] && exit 0
+
+
+header "COMMAND HISTORY"
+
+level=$(run show login level)
+if [ "${level,,}" == "superuser" ]; then
+    IFS=$'\n'
+    files=$(find /root /home /var/tmp/aaa-home -maxdepth 2 -name .bash_history)
+else
+    echo "Only superusers may collect history for other users"
+    files="$HOME/.bash_history"
+fi
+
+
+for file in $(echo -e "$files"); do
+    header "$file"
+    hist=$(/bin/bash -c "history -c; history -r '$file'; HISTTIMEFORMAT='%FT%T%z ' history")
+    echo "$hist"
+done
