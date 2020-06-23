@@ -1,3 +1,11 @@
+vyatta-tech-support (1.3.0) unstable; urgency=medium
+
+  * Display audit note for brief output
+  * Add opt-out shell history collection
+  * 0900-system: stop collecting /root/.bash_history
+
+ -- Duncan Eastoe <duncan.eastoe@att.com>  Tue, 23 Jun 2020 17:42:29 +0100
+
 vyatta-tech-support (1.2.3) unstable; urgency=medium
 
   [ Nicholas Brown ]
