@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright (c) 2019, AT&T Intellectual Property. All rights reserved.
+# Copyright (c) 2019-2020, AT&T Intellectual Property. All rights reserved.
 # Copyright (c) 2014-2016 by Brocade Communications Systems, Inc.
 # All rights reserved.
 #
@@ -118,11 +118,20 @@ function encrypt_file ()
 						 --cipher-algo AES256 --batch "$in_file" &> /dev/null
 }
 
+function encrypt_stdin()
+{
+	local passphrase="$1"
+
+	gpg -q -c --passphrase-fd 3 		 \
+		 --homedir "$VYATTA_TECH_SUPPORT_SCRATCH_DIR/.gnupg" \
+		 --cipher-algo AES256 --batch 2>/dev/null 3<<<"$passphrase"
+}
+
 function remote_copy() {
 	local file="$1"
 	local url="$2"
 
-	echo "Saving $file to $url";
+	echo "Saving $(realpath "$file") to $url";
 
 	# Silent, except errors.
 	curl_cmd="vyatta-curl-wrapper -Ss --upload-file"
@@ -161,4 +170,96 @@ create_scratch_dir() {
 	fi
 
 	return 0
+}
+
+ts_err() {
+	local code="$1"
+	shift
+	echo "$@" >&2
+	exit "$code"
+}
+
+# called as
+# ts_target_name "path" "suffix"
+# creates <dir>/<name>?<host>.tech-support[-suffix].<time>
+# shellcheck disable=SC2155
+ts_target_name() {
+	local h=$(hostname)
+	local t=$(date +%F-%H%M%S)
+	local desc=tech-support${2:+-${2}}
+	local o="${h}.${desc}.${t}"
+
+	if [[ -z ${1} ]] || is_remote_dest "${1}"; then
+		# Empty or URL
+		mkdir -p ${DEFAULT_PATH} >&/dev/null
+		echo "${DEFAULT_PATH}/${o}"
+	elif [[ ${1} =~ ^/.+ ]]; then
+		# Absolute Path
+		echo "${1}.${o}"
+	elif [[ ${1} =~ ^[^/]+$ ]]; then
+		# Filename
+		mkdir -p ${DEFAULT_PATH} >&/dev/null
+		echo "${DEFAULT_PATH}/${1}.${o}"
+	else
+		return 1
+	fi
+}
+
+is_remote_dest() {
+	[[ ${1} =~ ^(scp|ftp)://.* ]] || return 1
+	return 0
+}
+
+ts_call_cmd() {
+	local cmd="${1}"
+
+	shift
+	$cmd "$@"
+}
+
+#
+# ts_save_file <dst> <temaplate> cmd [args...]
+#
+ts_save_file() {
+	local dst="$1"
+	local template="$2"
+	shift 2
+
+	local odir oname template
+
+	odir=$(dirname "${template}")
+	template=$(basename "${template}")
+
+	[[ -d $odir ]] || ts_err 1 "Cannot save tech support: no such directory ${odir}"
+	if [[ $odir -ef $DEFAULT_PATH ]]; then
+		do_rotate 100 "*.tech-support.*"
+		do_rotate 5 "*.tech-support-archive.*"
+	fi
+
+	local -i fd
+	if ! exec {fd}>"$(mktemp --tmpdir="${odir}" -t "${template}")"; then
+		ts_err 1 "Cannot create tech-support file ${oname}.\*.txt"
+	fi
+
+	# change permission on the /dev/fd - this protects against any mv done
+	# after the templ files was created.
+	chgrp "$DEFAULT_GROUP" /dev/fd/${fd} >& /dev/null
+	chmod 'u=rw,g=r,o=' /dev/fd/${fd}
+	fdname="$(realpath "/dev/fd/${fd}")" # use only in messages
+
+	if is_remote_dest "${dst}";then
+		REMOTE=1
+	else
+		echo "Saving tech support output to ${fdname}"
+	fi
+
+	ts_call_cmd "$@" >&"${fd}"
+
+	if [[ $REMOTE -eq 1 ]]; then
+		remote_copy "/dev/fd/${fd}" "$dst" || \
+			ts_err 1 "Cannot copy ${fdname} to ${dst}"
+	fi
+
+	#close output file
+	exec {fd}>&-
 }

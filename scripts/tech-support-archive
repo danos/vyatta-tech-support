@@ -8,92 +8,120 @@
 # implement "generate tech-support archive"
 # usage: tech-support archive [ <filename> | <scp://> | <ftp://> ]
 
-FILE_NAME=0
 TS_SCRIPT=$vyatta_bindir/tech-support
 TS_FNS=$vyatta_datadir/vyatta-op/functions/tech-support.functions
 
+# TSA_TEMP_ROOT is the directory in which tech support
+# archive creates a temporary directory TEMP_DIR to collect various
+# tech support files for archiving later. TSA_TEMP_ROOT should be
+# protected with at least a sticky bit or should be writable only by root
+#
+TSA_TEMP_ROOT="/var/tmp"
+TEMP_DIR=""
+
+
+# creates various tech support archive files in current directory
+tsa_create_files() {
+	echo "Collecting /config ..."
+	tar --exclude="*tech-support-archive*" -zcf config.tgz /config >& /dev/null
+
+	echo "Collecting /etc ..."
+	tar -zcf etc.tgz /etc >& /dev/null
+
+	echo "Collecting /home ..."
+	tar --exclude=.bash_history -zcf home.tgz /home >& /dev/null
+
+	echo "Collecting /var/log ..."
+	tar -zcf var-log.tgz /var/log >& /dev/null
+
+	echo "Collecting /root ..."
+	tar --exclude=.bash_history -zcf root.tgz /root >& /dev/null
+
+	echo "Collecting /tmp ..."
+	tar -zcf tmp.tgz /tmp >& /dev/null
+
+	echo "Collecting core dumps ..."
+	tar -zcf core-dump.tgz /var/core /var/lib/systemd/coredump >& /dev/null
+
+	echo
+
+	"$TS_SCRIPT" archive save "$(pwd)"/state
+	mv state* current-state.gz
+}
+
+tsa_mktemp_dir() {
+	# set for file creation with permissions set to 640
+	local d="$1"
+	local t="${2}.XXXXXX"
+
+	[[ -d $d ]] || ts_err 1 "cannot create tech support archive: no such directory ${d}"
+	if ! TEMP_DIR="$(mktemp -d --tmpdir="${d}" -t "${t}")"; then
+		ts_err 1 "Cannot create archive temporary directory in $d"
+	fi
+	trap '[[ -z $TEMP_DIR ]] || rm -rf "${TEMP_DIR}"' EXIT 
+}
+
+# tsa_populate_dir <directory>
+tsa_populate_dir() (
+	# Run in a subshell and change directory.
+	builtin cd "$1" || ts_err 1 "Cannot change directory to ${1}"
+	umask 0137 >& /dev/null
+	tsa_create_files || ts_err 1 "Failed to generate archive"
+	chgrp "$DEFAULT_GROUP" "$1" >& /dev/null
+	chmod 'g+rx' "$1"
+)
+
+tsa_encrypt() {
+	if [[ $ENCRYPT -eq 1 ]]; then
+		if ! encrypt_stdin "$FILEPASS"; then
+			echo "Failed to encrypt tech support archive" >&2
+			return 1
+		fi
+	else
+		cat
+	fi
+}
+
+tsa_tar() {
+	if ! tar -C "${1}" -cf - . --transform "s|^\.|${2}|"; then
+		echo "Failed to generate tech support archive ${3}" >&2
+		return 1
+	fi
+}
+
+
+# Generate and Dumps the archive to stdout
+# tsa_generate <root_dir> <archive_content_dir> [<topdir_name in archive>]
+tsa_generate() (
+	local dir="$1" # top directory name
+	local name="$2" # top directory name
+
+	if ! tsa_tar "$dir" "$name" | tsa_encrypt; then
+		return 1
+	fi
+)
+
+# shellcheck source=../functions/tech-support.functions
 source "$TS_FNS"
 
 create_scratch_dir || exit 1
+builtin shopt -s -o pipefail
 
-HOSTNAME=$(hostname)
-CURTIME=$(date +%F-%H%M%S)
+DEST="$1"
+OUT="$(ts_target_name "$DEST" archive)" || ts_err 1 "Invalid path name ${DEST}"
 
-if [ -n "$1" ]; then
-	if [[ "$1" =~ scp:///* ]]; then
-		OUT="$HOSTNAME.tech-support-archive.$CURTIME"
-		REMOTE="1"
-	elif [[ "$1" =~ ftp:///* ]]; then
-		OUT="$HOSTNAME.tech-support-archive.$CURTIME"
-		REMOTE="1"
-	else
-		#file to be save locally
-		OUT="$1.$HOSTNAME.tech-support-archive.$CURTIME"
-	fi
-else
-	OUT="$HOSTNAME.tech-support-archive.$CURTIME"
-fi
+FILENAME="$(basename "$OUT")"
+TEMPLATE="${OUT}.XXXXXX.tgz"
+[[ $ENCRYPT -eq 1 ]] && TEMPLATE="${TEMPLATE}.gpg"
 
-# set for directory creation with permissions set to 775
-umask 0002 >& /dev/null
-if [[ "$OUT" != /* ]]; then
-	FILE_NAME="$OUT"
-	do_rotate 5 "*.tech-support-archive.*"
-	# it's not absolute path. save in default path.
-	OUT="$DEFAULT_PATH/$OUT"
-	mkdir -p "$OUT" >& /dev/null
-	chgrp "$DEFAULT_GROUP" "$OUT" >& /dev/null
-else
-	mkdir -p "$OUT" >& /dev/null
-	chgrp "$DEFAULT_GROUP" "$OUT" >& /dev/null
-	FILE_NAME=$(echo "$OUT" | sed -e 's/\//\n/g' | tail -1) 
-fi
+tsa_mktemp_dir "$TSA_TEMP_ROOT" "$FILENAME" || \
+	ts_err 1 "Cannot create temporary directory."
 
-# set for file creation with permissions set to 640
-umask 0137 >& /dev/null
+[[ -n $TEMP_DIR && -d $TEMP_DIR ]] || \
+	ts_err 1 "No tech support temporary directory"
 
-builtin cd "$OUT"
+tsa_populate_dir "$TEMP_DIR" || \
+	ts_err 1 "Failed create tech support files."
 
-echo "Collecting /config ..."
-tar --exclude="*tech-support-archive*" -zcf config.tgz /config >& /dev/null
-
-echo "Collecting /etc ..."
-tar -zcf etc.tgz /etc >& /dev/null
-
-echo "Collecting /home ..."
-tar --exclude=.bash_history -zcf home.tgz /home >& /dev/null
-
-echo "Collecting /var/log ..."
-tar -zcf var-log.tgz /var/log >& /dev/null
-
-echo "Collecting /root ..."
-tar --exclude=.bash_history -zcf root.tgz /root >& /dev/null
-
-echo "Collecting /tmp ..."
-tar -zcf tmp.tgz /tmp >& /dev/null
-
-echo "Collecting core dumps ..."
-tar -zcf core-dump.tgz /var/core /var/lib/systemd/coredump >& /dev/null
-
-echo
-
-"$TS_SCRIPT" archive save "${OUT}"/state
-mv state* current-state.gz
-
-builtin cd "../"
-tar -zcvf "$FILE_NAME".tgz "$FILE_NAME" >& /dev/null 
-rm -r "$FILE_NAME"
-OUT="$OUT".tgz 
-echo "Saved tech-support archive at $OUT"
-
-if [ "$ENCRYPT" == "1" ]; then
-	unencrypted_out="$OUT"
-	OUT="$OUT".gpg
-	encrypt_file "$unencrypted_out" "$FILEPASS" "$OUT"
-	echo "Saved encrypted tech-support archive at $OUT"
-fi
-if [ "$REMOTE" == "1" ]; then
-	remote_copy "$OUT" "$1"
-fi
-
-exit
+ts_save_file "$DEST" "$TEMPLATE" tsa_generate "$TEMP_DIR" "$FILENAME"
+echo "Done"
