@@ -11,6 +11,12 @@ Depends: vyatta-tech-support, ${misc:Depends}, ${yang:Depends}
 Description: YANG module for tech support op commands
  The YANG module for Vyatta tech support
 
+Package: vyatta-tech-support-collection-feature
+Architecture: all
+Depends: ${misc:Depends}
+Description: Tech support collection feature
+ Enables tech support collection functionality
+
 Package: vyatta-tech-support
 Architecture: all
 Depends:

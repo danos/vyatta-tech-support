@@ -20,7 +20,7 @@ module vyatta-op-tech-support-v1 {
 		 Web: www.att.com";
 
 	description
-		"Copyright (c) 2019-2020, AT&T Intellectual Property.
+		"Copyright (c) 2019-2021, AT&T Intellectual Property.
 		 All rights reserved.
 
 		 Redistribution and use in source and binary forms, with or without
@@ -54,11 +54,18 @@ module vyatta-op-tech-support-v1 {
 
 		 Defines the tech support operational CLI";
 
+	revision 2021-01-18 {
+		description "Add tech-support-collection feature";
+	}
 	revision 2020-06-11 {
 		description "Add exclude-command-history option";
 	}
 	revision 2019-06-21 {
 		description "Initial version";
+	}
+
+	feature tech-support-collection {
+		description "Support for collecting tech support information";
 	}
 
 	grouping archive-password-option {
@@ -115,6 +122,8 @@ module vyatta-op-tech-support-v1 {
 	}
 
 	opd:augment /generate:generate {
+		if-feature tech-support-collection;
+
 		opd:command tech-support {
 			opd:help "Generate tech-support archive";
 			opd:command archive {
@@ -132,6 +141,8 @@ module vyatta-op-tech-support-v1 {
 	}
 
 	opd:augment /show:show {
+		if-feature tech-support-collection;
+
 		opd:command tech-support {
 			opd:inherit "" {
 				opd:pass-opc-args true;

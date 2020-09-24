@@ -2,7 +2,7 @@ Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 
 Files: yang/*
 Copyright:
-    Copyright (c) 2019-2020, AT&T Intellectual Property
+    Copyright (c) 2019-2021, AT&T Intellectual Property
 License: BSD-3-clause
 
 Files: functions/tech-support.functions
@@ -13,7 +13,7 @@ License: LGPL-2.1
 
 Files: *
 Copyright:
-    Copyright (c) 2017-2020, AT&T Intellectual Property
+    Copyright (c) 2017-2021, AT&T Intellectual Property
     Copyright (c) 2014-2017, Brocade Communications Systems, Inc.
     Copyright (c) 2007-2013, Vyatta Inc.
 License: GPL-2
