@@ -28,6 +28,21 @@ unset VYATTA_TECH_SUPPORT_COPY_USER
 COPY_PASS="$VYATTA_TECH_SUPPORT_COPY_PASS"
 unset VYATTA_TECH_SUPPORT_COPY_PASS
 
+# The member of this array is cleaned up at exit.
+declare -a TS_CLEANP_DIRS
+
+ts_push_cleanup_dir() {
+	TS_CLEANUP_DIRS+=("$@")
+}
+
+ts_cleanup() {
+	for d in "${TS_CLEANUP_DIRS[@]}"; do
+		rm -rf "$d"
+	done
+}
+
+trap 'ts_cleanup' EXIT
+
 function header {
 		echo
 		echo ----------------
@@ -154,21 +169,20 @@ function remote_copy() {
 create_scratch_dir() {
 	[ -z "$VYATTA_TECH_SUPPORT_SCRATCH_DIR" ] || return 0
 
-	local scratch_dir="$(mktemp -d)"
+	local scratch_dir
 
-	if [ $? -ne 0 ] || [ -z "$scratch_dir" ]; then
-		echo -n "Failed to create scratch directory, "
-
-		if [ "$ENCRYPT" == "1" ]; then
-			echo "unable to generate encrypted output"
+	if ! scratch_dir="$(mktemp -d)"; then
+		msg="Failed to create scratch directory,"
+		if [[ $ENCRYPT -eq 1 ]]; then
+			echo "${msg} unable to generate encrypted output" >&2
 			return 1
+		else
+			echo "${msg} output may be limited" >&2
 		fi
-		echo "output may be limited"
 	else
+		ts_push_cleanup_dir "$scratch_dir"
 		export VYATTA_TECH_SUPPORT_SCRATCH_DIR="$scratch_dir"
-		trap 'rm -rf "$VYATTA_TECH_SUPPORT_SCRATCH_DIR"' EXIT
 	fi
-
 	return 0
 }
 

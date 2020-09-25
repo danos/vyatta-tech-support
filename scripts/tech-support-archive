@@ -58,7 +58,7 @@ tsa_mktemp_dir() {
 	if ! TEMP_DIR="$(mktemp -d --tmpdir="${d}" -t "${t}")"; then
 		ts_err 1 "Cannot create archive temporary directory in $d"
 	fi
-	trap '[[ -z $TEMP_DIR ]] || rm -rf "${TEMP_DIR}"' EXIT 
+	ts_push_cleanup_dir "$TEMP_DIR"
 }
 
 # tsa_populate_dir <directory>
