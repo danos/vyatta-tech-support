@@ -1,3 +1,11 @@
+vyatta-tech-support (1.3.1) unstable; urgency=medium
+
+  [ Nachiketa Prachanda ]
+  * use unique names for tech-support output files
+  * do not overwrite EXIT trap
+
+ -- Duncan Eastoe <duncan.eastoe@att.com>  Thu, 01 Oct 2020 19:36:42 +0100
+
 vyatta-tech-support (1.3.0) unstable; urgency=medium
 
   * Display audit note for brief output
