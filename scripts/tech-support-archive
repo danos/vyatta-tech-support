@@ -1,5 +1,5 @@
 #!/bin/vcli -f
-# Copyright (c) 2017-2020, AT&T Intellectual Property.
+# Copyright (c) 2017-2021, AT&T Intellectual Property.
 # Copyright (c) 2014-2017 by Brocade Communications Systems, Inc.
 # All rights reserved.
 #
@@ -83,7 +83,7 @@ tsa_encrypt() {
 }
 
 tsa_tar() {
-	if ! tar -C "${1}" -cf - . --transform "s|^\.|${2}|"; then
+	if ! tar -C "${1}" -czf - . --transform "s|^\.|${2}|"; then
 		echo "Failed to generate tech support archive ${3}" >&2
 		return 1
 	fi
