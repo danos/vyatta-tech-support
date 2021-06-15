@@ -43,6 +43,11 @@ tsa_create_files() {
 	echo "Collecting core dumps ..."
 	tar -zcf core-dump.tgz /var/core /var/lib/systemd/coredump >& /dev/null
 
+	if [ -d /var/crash ]; then
+		echo "Collecting kernel crash dumps ..."
+		tar -zcf var-crash.tgz /var/crash >& /dev/null
+	fi
+
 	echo
 
 	"$TS_SCRIPT" archive save "$(pwd)"/state
